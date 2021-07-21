@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.google.common.collect.Lists;
@@ -20,9 +21,11 @@ import root.dto.ArticleCategoryDto;
 import root.dto.ShowCategoryArticleDto;
 import root.exception.CheckParamException;
 import root.exception.NotFoundException;
+import root.mapper.ArticleBindArticleCategoryMapper;
 import root.mapper.ArticleMapper;
 import root.mapper.ArticleCategoryMapper;
 import root.model.Article;
+import root.model.ArticleBindArticleCategory;
 import root.model.ArticleCategory;
 import root.param.PageParam;
 import root.redis.RedisOperator;
@@ -38,6 +41,8 @@ public class ArticleCategoryService {
 	private ArticleCategoryMapper categoryMapper;
 	@Resource
 	private ArticleMapper articaleMapper;
+	@Autowired
+	private ArticleBindArticleCategoryMapper articleBindArticleCategoryMapper;
 	@Resource
 	private BlogConfigProperties blogConfigProperties;
 	@Resource
@@ -65,16 +70,16 @@ public class ArticleCategoryService {
 			return PageResult.<ArticleDto>builder().data(Lists.newArrayList()).pageModel(new PageModel()).code(200).build();
 		}
 		param.buildSkip();
-		List<Article> articaleList = articaleMapper.categoryPage(param.getSkip(),param.getPageSize(),id);
-		List<ArticleDto> articaleDtoList = Lists.newArrayList();
-		articaleList.forEach(articale -> {
-			ArticleDto articaleDto = DtoUtil.adapt(new ArticleDto(), articale);
-			articaleDto.setTimeAgo(TimeAgoUtils.format(articaleDto.getCreateTime()));
-			articaleDto.formatNoSecondTime();
-			articaleDtoList.add(articaleDto);
+		List<Article> articleList = articaleMapper.categoryPage(param.getSkip(),param.getPageSize(),id);
+		List<ArticleDto> articleDtoList = Lists.newArrayList();
+		articleList.forEach(article -> {
+			ArticleDto articleDto = DtoUtil.adapt(new ArticleDto(), article);
+			articleDto.setTimeAgo(TimeAgoUtils.format(articleDto.getCreateTime()));
+			articleDto.formatNoSecondTime();
+			articleDtoList.add(articleDto);
 		});
-		PageModel pageModel = new PageModel(total,articaleDtoList.size(),param.getCurrentPage(),param.getPageSize());
-		return PageResult.<ArticleDto>builder().category(category).pageModel(pageModel).code(200).data(articaleDtoList).build();
+		PageModel pageModel = new PageModel(total,articleDtoList.size(),param.getCurrentPage(),param.getPageSize());
+		return PageResult.<ArticleDto>builder().category(category).pageModel(pageModel).code(200).data(articleDtoList).build();
 	}
 	
 	public JsonResult<List<ArticleDto>> praise(Integer quantity) {
@@ -98,107 +103,32 @@ public class ArticleCategoryService {
 		return JsonResult.<List<ArticleDto>>success(articaleDtoList);
 	}
 
-	public JsonResult<ShowCategoryArticleDto> categoryArticale(Integer quantity) {
+	public JsonResult<ShowCategoryArticleDto> findListByCategoryIdAndQuantity(Integer articleCategoryId, Integer quantity) {
 		// 根据集体点赞数和更新时间获得指定数量的分类文章的文章
 		// 查找分类名称
 		if (quantity == null) {
 			throw new CheckParamException("数量","未指定");
 		}
-		String cacheDto = redis.get(RedisCode.ARTICLE_CATEGORY_CACHE+":"+blogConfigProperties.getCategory().getArticleId());
+		String cacheDto = redis.get(RedisCode.ARTICLE_CATEGORY_CACHE+":"+ articleCategoryId);
 		if (cacheDto != null) {
 			return JsonResult.<ShowCategoryArticleDto>success(JsonUtils.jsonToPojo(cacheDto, ShowCategoryArticleDto.class));
 		}
-		List<Article> articaleList = articaleMapper.categoryArticle(blogConfigProperties.getCategory().getArticleId(),quantity);
+		List<ArticleBindArticleCategory> dbArticleBindArticleCategoryList = articleBindArticleCategoryMapper.findListByArticleCategoryIdWithLimitAndRandom(articleCategoryId, quantity);
 		List<ArticleDto> articaleDtoList = Lists.newArrayList();
-		articaleList.forEach(articale -> {
-			ArticleDto articaleDto = DtoUtil.adapt(new ArticleDto(), articale);
+		for (int i = 0; i < dbArticleBindArticleCategoryList.size(); i++) {
+			ArticleBindArticleCategory dbArticleBindArticleCategoryItem = dbArticleBindArticleCategoryList.get(i);
+			Article dbArticle = articaleMapper.selectByPrimaryKey(dbArticleBindArticleCategoryItem.getArticleId());
+			ArticleDto articaleDto = DtoUtil.adapt(new ArticleDto(), dbArticle);
 			articaleDto.setTimeAgo(TimeAgoUtils.format(articaleDto.getUpdateTime()));
 			articaleDto.formatNoSecondTime();
 			articaleDtoList.add(articaleDto);
-		});
-		ArticleCategory category = categoryMapper.selectByPrimaryKey(blogConfigProperties.getCategory().getArticleId());
-		if (category == null) {
-			throw new CheckParamException("分类","不存在");
 		}
+		ArticleCategory category = categoryMapper.selectByPrimaryKey( articleCategoryId);
+		if (category == null) { throw new CheckParamException("分类","不存在"); }
 		ShowCategoryArticleDto showCADto = ShowCategoryArticleDto.builder().category(category).articaleList(articaleDtoList).build();
-		redis.set(RedisCode.ARTICLE_CATEGORY_CACHE+":"+blogConfigProperties.getCategory().getArticleId(), JsonUtils.objectToJson(showCADto),blogConfigProperties.getCache().getArticleListIndexTimeout());
+		redis.set(RedisCode.ARTICLE_CATEGORY_CACHE+":"+articleCategoryId, JsonUtils.objectToJson(showCADto),blogConfigProperties.getCache().getArticleListIndexTimeout());
 		return JsonResult.<ShowCategoryArticleDto>success(showCADto);
-	}
-
-	public JsonResult<ShowCategoryArticleDto> categoryNode(Integer quantity) {
-		if (quantity == null) {
-			throw new CheckParamException("数量","未指定");
-		}
-		String cacheDto = redis.get(RedisCode.ARTICLE_CATEGORY_CACHE+":"+blogConfigProperties.getCategory().getNodeId());
-		if (cacheDto != null) {
-			return JsonResult.<ShowCategoryArticleDto>success(JsonUtils.jsonToPojo(cacheDto, ShowCategoryArticleDto.class));
-		}
-		List<Article> articaleList = articaleMapper.categoryArticle(blogConfigProperties.getCategory().getNodeId(),quantity);
-		List<ArticleDto> articaleDtoList = Lists.newArrayList();
-		articaleList.forEach(articale -> {
-			ArticleDto articaleDto = DtoUtil.adapt(new ArticleDto(), articale);
-			articaleDto.setTimeAgo(TimeAgoUtils.format(articaleDto.getUpdateTime()));
-			articaleDto.formatNoSecondTime();
-			articaleDtoList.add(articaleDto);
-		});
-		ArticleCategory category = categoryMapper.selectByPrimaryKey(blogConfigProperties.getCategory().getNodeId());
-		if (category == null) {
-			throw new CheckParamException("分类","不存在");
-		}
-		ShowCategoryArticleDto showCADto = ShowCategoryArticleDto.builder().category(category).articaleList(articaleDtoList).build();
-		redis.set(RedisCode.ARTICLE_CATEGORY_CACHE+":"+blogConfigProperties.getCategory().getNodeId(), JsonUtils.objectToJson(showCADto),blogConfigProperties.getCache().getArticleListIndexTimeout());
-		return JsonResult.<ShowCategoryArticleDto>success(showCADto);
-	}
-	
-	public JsonResult<ShowCategoryArticleDto> categoryShortCode(Integer quantity) {
-		if (quantity == null) {
-			throw new CheckParamException("数量","未指定");
-		}
-		String cacheDto = redis.get(RedisCode.ARTICLE_CATEGORY_CACHE+":"+blogConfigProperties.getCategory().getShortCodeId());
-		if (cacheDto != null) {
-			return JsonResult.<ShowCategoryArticleDto>success(JsonUtils.jsonToPojo(cacheDto, ShowCategoryArticleDto.class));
-		}
-		List<Article> articaleList = articaleMapper.categoryArticle(blogConfigProperties.getCategory().getShortCodeId(),quantity);
-		List<ArticleDto> articaleDtoList = Lists.newArrayList();
-		articaleList.forEach(articale -> {
-			ArticleDto articaleDto = DtoUtil.adapt(new ArticleDto(), articale);
-			articaleDto.setTimeAgo(TimeAgoUtils.format(articaleDto.getUpdateTime()));
-			articaleDto.formatNoSecondTime();
-			articaleDtoList.add(articaleDto);
-		});
-		ArticleCategory category = categoryMapper.selectByPrimaryKey(blogConfigProperties.getCategory().getShortCodeId());
-		if (category == null) {
-			throw new CheckParamException("分类","不存在");
-		}
-		ShowCategoryArticleDto showCADto = ShowCategoryArticleDto.builder().category(category).articaleList(articaleDtoList).build();
-		redis.set(RedisCode.ARTICLE_CATEGORY_CACHE+":"+blogConfigProperties.getCategory().getShortCodeId(), JsonUtils.objectToJson(showCADto),blogConfigProperties.getCache().getArticleListIndexTimeout());
-		return JsonResult.<ShowCategoryArticleDto>success(showCADto);
-	}
-
-	public JsonResult<ShowCategoryArticleDto> categoryChat(Integer quantity) {
-		if (quantity == null) {
-			throw new CheckParamException("数量","未指定");
-		}
-		String cacheDto = redis.get(RedisCode.ARTICLE_CATEGORY_CACHE+":"+blogConfigProperties.getCategory().getChatId());
-		if (cacheDto != null) {
-			return JsonResult.<ShowCategoryArticleDto>success(JsonUtils.jsonToPojo(cacheDto, ShowCategoryArticleDto.class));
-		}
-		List<Article> articaleList = articaleMapper.categoryArticle(blogConfigProperties.getCategory().getChatId(),quantity);
-		List<ArticleDto> articaleDtoList = Lists.newArrayList();
-		articaleList.forEach(articale -> {
-			ArticleDto articaleDto = DtoUtil.adapt(new ArticleDto(), articale);
-			articaleDto.setTimeAgo(TimeAgoUtils.format(articaleDto.getUpdateTime()));
-			articaleDto.formatNoSecondTime();
-			articaleDtoList.add(articaleDto);
-		});
-		ArticleCategory category = categoryMapper.selectByPrimaryKey(blogConfigProperties.getCategory().getChatId());
-		if (category == null) {
-			throw new CheckParamException("分类","不存在");
-		}
-		ShowCategoryArticleDto showCADto = ShowCategoryArticleDto.builder().category(category).articaleList(articaleDtoList).build();
-		redis.set(RedisCode.ARTICLE_CATEGORY_CACHE+":"+blogConfigProperties.getCategory().getChatId(), JsonUtils.objectToJson(showCADto),blogConfigProperties.getCache().getArticleListIndexTimeout());
-		return JsonResult.<ShowCategoryArticleDto>success(showCADto);
-	}
+	};
 
 	public JsonResult<ShowCategoryArticleDto> hotDiscuss(Integer quantity) {
 		if (quantity == null) {
@@ -286,21 +216,21 @@ public class ArticleCategoryService {
 
 	/**
 	 * 随机取出指定数量{@param quantity}文章
+	 * @param articleCategoryId
 	 * @param quantity
 	 * @return
 	 */
-	public JsonResult<List<ArticleDto>> randomArticle(Integer quantity) {
-		if (quantity == null) {
-			throw new CheckParamException("数量","未指定");
-		}
-		List<Article> data = articaleMapper.randomArticleByQuantity(quantity);
+	public JsonResult<List<ArticleDto>> randomArticle(Integer articleCategoryId, Integer quantity) {
+		List<ArticleBindArticleCategory> articleBindArticleCategoryList = articleBindArticleCategoryMapper.findListByArticleCategoryIdWithLimitAndRandom(articleCategoryId, quantity);
 		List<ArticleDto> articaleDtoList = Lists.newArrayList();
-		data.forEach(articale -> {
-			ArticleDto articaleDto = DtoUtil.adapt(new ArticleDto(), articale);
+		for (int i = 0; i < articleBindArticleCategoryList.size(); i++) {
+			ArticleBindArticleCategory articleBindArticleCategoryItem = articleBindArticleCategoryList.get(i);
+			Article dbArticle = articaleMapper.selectByPrimaryKey(articleBindArticleCategoryItem.getArticleId());
+			ArticleDto articaleDto = DtoUtil.adapt(new ArticleDto(), dbArticle);
 			articaleDto.setTimeAgo(TimeAgoUtils.format(articaleDto.getUpdateTime()));
 			articaleDto.formatNoSecondTime();
 			articaleDtoList.add(articaleDto);
-		});
+		}
 		return JsonResult.<List<ArticleDto>>success(articaleDtoList);
 	}
 }

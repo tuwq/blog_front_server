@@ -2,12 +2,17 @@ package root.controller;
 
 import javax.annotation.Resource;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import root.beans.JsonResult;
 import root.configConstant.BlogConfigProperties;
+import root.mapper.ArticleBindArticleCategoryMapper;
+import root.mapper.ArticleBindArticleTagMapper;
+import root.model.ArticleBindArticleCategory;
+import root.model.ArticleBindArticleTag;
 import root.redis.RedisOperator;
 import root.service.MailService;
 import root.service.QiNiuService;
@@ -48,4 +53,5 @@ public class TestController {
 	public JsonResult del() {
 		return JsonResult.success();
 	}
+
 }

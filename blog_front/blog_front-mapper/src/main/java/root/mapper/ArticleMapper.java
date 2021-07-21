@@ -42,14 +42,15 @@ public interface ArticleMapper {
 	List<Article> hotDiscuss(@Param("quantity") Integer quantity);
 	/**
 	 * 分类下的文章总数
-	 * @param id
+	 * @param categoryId
 	 * @return
 	 */
 	Long countAllByCategoryId(@Param("categoryId") Integer category_id);
 	/**
 	 * 指定分类下的文章分页数据
-	 * @param param
-	 * @param id
+	 * @param skip
+	 * @param pageSize
+	 * @param categoryId
 	 * @return
 	 */
 	List<Article> categoryPage(@Param("skip") Integer skip,@Param("pageSize") Integer pageSize,@Param("categoryId") Integer category_id);
@@ -166,5 +167,5 @@ public interface ArticleMapper {
 	 * @param quantity
 	 * @return
 	 */
-    List<Article> randomArticleByQuantity(@Param("quantity") Integer quantity);
+    List<Article> randomArticleByQuantity(@Param("articleCategoryId") Integer articleCategoryId,@Param("quantity") Integer quantity);
 }

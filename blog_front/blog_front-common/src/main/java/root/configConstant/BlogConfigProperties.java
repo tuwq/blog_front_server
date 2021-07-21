@@ -23,6 +23,4 @@ public class BlogConfigProperties {
 	
 	private QiniuProperties qiniu;
 	
-	private CategoryProperties category;
-	
 }

@@ -7,18 +7,20 @@ import java.util.GregorianCalendar;
 
 public class TimeUtil {
 	
-	// simpleDateFormat线程不安全
-	private final static SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-	private final static SimpleDateFormat formatNoSecond = new SimpleDateFormat("yyyy-MM-dd");
+	// simpleDateFormat线程不安全,不能使用静态
+	// private final static SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+	// private final static SimpleDateFormat formatNoSecond = new SimpleDateFormat("yyyy-MM-dd");
 	private final static Calendar c = new GregorianCalendar();
 	// private static DateTimeFormatter format = DateTimeFormat.forPattern("yyyyMMdd");
 	// private static DateTimeFormatter formatNoSecond = DateTimeFormat.forPattern("yyyyMMdd");
-	
+
     public static String format(Long second) {
+		SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     	return format.format(second);
     }
     
     public static String formatNoSecond(Long second) {
+		SimpleDateFormat formatNoSecond = new SimpleDateFormat("yyyy-MM-dd");
 		return formatNoSecond.format(second);
     }
 	

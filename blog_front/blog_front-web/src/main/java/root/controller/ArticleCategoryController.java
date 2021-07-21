@@ -5,6 +5,7 @@ import java.util.List;
 import javax.annotation.Resource;
 
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import root.beans.JsonResult;
 import root.beans.PageResult;
+import root.configConstant.BlogConfigProperties;
 import root.constant.ResultCode;
 import root.dto.ArticleDto;
 import root.dto.ArticleCategoryDto;
@@ -28,6 +30,8 @@ public class ArticleCategoryController {
 
 	@Resource
 	private ArticleCategoryService articleCategoryService;
+	@Autowired
+	private BlogConfigProperties blogConfigProperties;
 	
 	@GetMapping("/list")
 	public PageResult<ArticleDto> articleByArtilceTagId(PageParam param, @RequestParam("categoryId") String categoryId) {
@@ -66,51 +70,26 @@ public class ArticleCategoryController {
 		return articleCategoryService.newTime(Integer.parseInt(quantity));
 	}
 
-	@GetMapping("/articaleCategory/{quantity}")
-	public JsonResult<ShowCategoryArticleDto> categoryArticale(@PathVariable("quantity") String quantity) {
-		if (!StringUtils.isNumeric(quantity)) {
-			throw new CheckParamException("数量","未指定");
-		}
-		return articleCategoryService.categoryArticale(Integer.parseInt(quantity));
-	}
-
-	@GetMapping("/nodeCategory/{quantity}")
-	public JsonResult<ShowCategoryArticleDto> categoryNode(@PathVariable("quantity") String quantity) {
-		if (!StringUtils.isNumeric(quantity)) {
-			throw new CheckParamException("数量","未指定");
-		}
-		return articleCategoryService.categoryNode(Integer.parseInt(quantity));
-	}
-
-	@GetMapping("/shortCodeCategory/{quantity}")
-	public JsonResult<ShowCategoryArticleDto> categoryShortCode(@PathVariable("quantity") String quantity) {
-		if (!StringUtils.isNumeric(quantity)) {
-			throw new CheckParamException("数量","未指定");
-		}
-		return articleCategoryService.categoryShortCode(Integer.parseInt(quantity));
-	}
-
-	@GetMapping("/chatCategory/{quantity}")
-	public JsonResult<ShowCategoryArticleDto> categoryChat(@PathVariable("quantity") String quantity) {
-		if (!StringUtils.isNumeric(quantity)) {
-			throw new CheckParamException("数量","未指定");
-		}
-		return articleCategoryService.categoryChat(Integer.parseInt(quantity));
+	@GetMapping("/findListByArticleAndQuantity/{quantity}")
+	public JsonResult<ShowCategoryArticleDto> findListByArticleAndQuantity(
+			@RequestParam("articleCategoryId") Integer articleCategoryId,
+			@PathVariable("quantity") String quantity) {
+		if (!StringUtils.isNumeric(quantity)) { throw new CheckParamException("数量","未指定"); }
+		return articleCategoryService.findListByCategoryIdAndQuantity(articleCategoryId, Integer.parseInt(quantity));
 	}
 
 	@GetMapping("/hotDiscuss/{quantity}")
 	public JsonResult<ShowCategoryArticleDto> hotDiscuss(@PathVariable("quantity") String quantity) {
-		if (!StringUtils.isNumeric(quantity)) {
-			throw new CheckParamException("数量","未指定");
-		}
+		if (!StringUtils.isNumeric(quantity)) { throw new CheckParamException("数量","未指定"); }
 		return articleCategoryService.hotDiscuss(Integer.parseInt(quantity));
 	}
 
 	@GetMapping("/randomArticle/{quantity}")
-	public JsonResult<List<ArticleDto>> randomArticle(@PathVariable("quantity") String quantity) {
-		if (!StringUtils.isNumeric(quantity)) {
-			throw new CheckParamException("数量","未指定");
-		}
-		return articleCategoryService.randomArticle(Integer.parseInt(quantity));
+	public JsonResult<List<ArticleDto>> randomArticle(
+			@RequestParam("articleCategoryId") Integer articleCategoryId,
+			@PathVariable("quantity") String quantity) {
+		if (!StringUtils.isNumeric(quantity)) { throw new CheckParamException("数量","未指定"); }
+		return articleCategoryService.randomArticle(articleCategoryId, Integer.parseInt(quantity));
 	}
+
 }

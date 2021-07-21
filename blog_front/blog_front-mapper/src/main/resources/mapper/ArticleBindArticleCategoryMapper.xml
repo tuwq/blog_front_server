@@ -9,6 +9,16 @@
   <sql id="Base_Column_List" >
     id, article_id, article_category_id
   </sql>
+
+
+  <select id="findListByArticleCategoryIdWithLimitAndRandom" resultMap="BaseResultMap" parameterType="map">
+    SELECT <include refid="Base_Column_List" />
+    FROM article_bind_article_category
+    WHERE article_category_id = #{articleCategoryId}
+    ORDER BY RAND()
+    LIMIT #{quantity}
+  </select>
+
   <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Integer" >
     select 
     <include refid="Base_Column_List" />
